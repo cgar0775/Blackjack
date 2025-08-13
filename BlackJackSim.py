@@ -1,12 +1,16 @@
+
 import random as rnd
+import time
+
 import numpy as np
 
 # initialize bankroll and table minimum
 bankroll = 250
 table_min_bet = 15
 
-# shoe designation
+# sim designation
 num_decks = 1
+num_players = 2
 
 
 # create shoe of designated number of decks
@@ -29,7 +33,6 @@ def card_value(card):
         return 11  # handle Ace adjustment later
     else:
         return int(card)
-
 
 
 def hand_value(hand):
@@ -76,8 +79,8 @@ while play_hand:
     print("Bankroll: " + str(bankroll))
 
     # reset loop variables
-    ace_set = False
-    table_set = False
+    ace_set = num_players*[False]
+    player_set = num_players*[False]
     dealer_set = False
     win_check = 0
 
@@ -85,91 +88,113 @@ while play_hand:
     deck = create_deck(num_decks)
     rnd.shuffle(deck)
 
-    # deal player and dealer
-    player_cards, dealer_cards = [], []
-    for _ in range(2):  # deal two rounds
-        player_cards.append(deal_card(deck))
+    # deal and players
+    dealer_cards = []
+    players = [[] for i in np.arange(num_players)]
+    for r in range(2):  # deal two rounds
+        for p in np.arange(num_players):
+            players[p].append(deal_card(deck))
         dealer_cards.append(deal_card(deck))
 
     # display dealer hand
     print("Dealer: " + str(hand_value(dealer_cards[1])[0]) +
           "\n\t\t___\t\t___\n\t\t| |\t\t|" + dealer_cards[1] + "|\n\t\t---\t\t---")
 
-    # display player hand
-    if hand_value(player_cards)[1] == 0:
-        print("Player: " + str(hand_value(player_cards)[0]), end="")
-        print("\\" + str(hand_value(player_cards)[0]-10) + "\n")
-    else:
-        print("\nPlayer: " + str(hand_value(player_cards)[0]) + "\n")
+    # if dealer has an ace up, ask if players want insurance
+    if hand_value(dealer_cards[1])[1] == 0:
 
-    # print player cards
-    print_cards(player_cards)
+        # initialize insurance holders
+        player_insurance = num_players*[0]
 
-    # check for insurance
-    while not ace_set:
+        # loop through all players
+        for p in np.arange(num_players):
+            player_cards = players[p]
 
-        # if dealer has an ace up, ask if player wants insurance
-        if hand_value(dealer_cards[1])[1] == 11:
-            print("\nInsurance or No? (I/N):")
-            player_action = input()
-
-            # if dealer has blackjack, end game and deal with loss condition
-            if hand_value(dealer_cards) == 21:
-                ace_set = True
-                table_set = True
-                dealer_set = True
-
+            # display player hand
+            if hand_value(player_cards)[1] == 0:
+                print("Player " + str(p + 1) + ": " + str(hand_value(player_cards)[0]), end="")
+                print("\\" + str(hand_value(player_cards)[0] - 10) + "\n")
             else:
-                print("Safe.")
-                ace_set = True
-        else:
-            ace_set = True
+                print("\nPlayer " + str(p + 1) + ": " + str(hand_value(player_cards)[0]) + "\n")
 
-    # player hitting loop, goes until hand is set
-    while not table_set:
+            # print player cards
+            print_cards(player_cards)
 
-        # set table if player has 21 already
-        if hand_value(player_cards)[0] == 21:
-            table_set = True
+            while not ace_set[p]:
+                print("\nPlayer " + str(p+1) + ", Insurance or No? (I/N):")
+                player_action = input()
+                if str.lower(player_action) == 'i':
+                    player_insurance[p] = 1
+                    ace_set[p] = True
+                elif str.lower(player_action) == 'n':
+                    player_insurance[p] = 0
+                    ace_set[p] = True
+
+        # if dealer has blackjack, end game and deal with loss condition
+        if hand_value(dealer_cards) == 21:
+            player_set = num_players * [True]
             dealer_set = True
+
         else:
-            # ask for action
-            print("\nHit or Stand? (H/S):")
-            player_action = input()
+            print("Safe.")
 
-            # if standing, table is set
-            if str.lower(player_action) == 's':
-                table_set = True
-            # if hitting, update table display and counts
-            elif str.lower(player_action) == 'h':
+    # loop through all players
+    for p in np.arange(num_players):
+        player_cards = players[p]
 
-                # give player new card and update deck
-                player_cards.append(deal_card(deck))
+        # display player hand
+        if hand_value(player_cards)[1] == 0:
+            print("Player " + str(p + 1) + ": " + str(hand_value(player_cards)[0]), end="")
+            print("\\" + str(hand_value(player_cards)[0] - 10) + "\n")
+        else:
+            print("\nPlayer " + str(p + 1) + ": " + str(hand_value(player_cards)[0]) + "\n")
 
-                # display dealer hand
+        # player hitting loop, goes until hand is set
+        while not player_set[p]:
 
-                print("\n\n\n\n\n")
-                print("Dealer: " + str(hand_value(dealer_cards[1])[0]) +
-                      "\n\t\t___\t\t___\n\t\t| |\t\t|" + dealer_cards[1] + "|\n\t\t---\t\t---")
+            # print player cards
+            print_cards(player_cards)
 
-                # display player hand
-                if hand_value(player_cards)[1] == 0:
-                    print("Player: " + str(hand_value(player_cards)[0]), end="")
-                    print("\\" + str(hand_value(player_cards)[0] - 10) + "\n")
-                else:
-                    print("\nPlayer: " + str(hand_value(player_cards)[0]) + "\n")
+            # set player if they have 21 already
+            if hand_value(player_cards)[0] == 21:
+                print("\nBlackJack!")
+                player_set[p] = True
+            else:
+                # ask for action
+                print("\nHit or Stand? (H/S):")
+                player_action = input()
 
-                # print player cards
-                print_cards(player_cards)
+                # if standing, table is set
+                if str.lower(player_action) == 's':
+                    player_set[p] = True
+                # if hitting, update table display and counts
+                elif str.lower(player_action) == 'h':
 
-        # check if player has busted
-        if hand_value(player_cards)[0] > 21:
-            win_check = -1
-            table_set = True
-            dealer_set = True
+                    # give player new card and update deck
+                    player_cards.append(deal_card(deck))
+
+                    # display dealer hand
+                    print("Dealer: " + str(hand_value(dealer_cards[1])[0]) +
+                          "\n\t\t___\t\t___\n\t\t| |\t\t|" + dealer_cards[1] + "|\n\t\t---\t\t---")
+
+                    # display player hand
+                    if hand_value(player_cards)[1] == 0:
+                        print("Player " + str(p+1) + ": " + str(hand_value(player_cards)[0]), end="")
+                        print("\\" + str(hand_value(player_cards)[0] - 10) + "\n")
+                    else:
+                        print("\nPlayer " + str(p+1) + ": " + str(hand_value(player_cards)[0]) + "\n")
+
+                    # print player cards
+                    print_cards(player_cards)
+
+            # check if player has busted
+            if hand_value(player_cards)[0] > 21:
+                win_check = -1
+                player_set[p] = True
+        time.sleep(1.5)
 
     # display hands after dealer show
-    print("\n\n\n\n\n")
+    print("\n\n\n\n\n\n\n")
 
     # display dealer hand value
     if hand_value(dealer_cards)[1] == 0:
@@ -181,9 +206,13 @@ while play_hand:
     # print dealer cards
     print_cards(dealer_cards)
 
-    # print player cards
-    print("\nPlayer: " + str(hand_value(player_cards)[0]) + "\n")
-    print_cards(player_cards)
+    # # print player cards
+    # for p in np.arange(num_players):
+    #     player_cards = players[p]
+    #     print("\nPlayer " + str(p+1) + ": " + str(hand_value(player_cards)[0]) + "\n")
+    #     print_cards(player_cards)
+
+    time.sleep(1.5)
 
     # dealer hits until 17
     while not dealer_set:
@@ -197,7 +226,7 @@ while play_hand:
             # give dealer new card
             dealer_cards.append(deal_card(deck))
 
-            print("\n\n\n\n\n")
+            print("\n\n\n\n\n\n\n")
 
             # display dealer hand value
             if hand_value(dealer_cards)[1] == 0:
@@ -210,53 +239,67 @@ while play_hand:
             print_cards(dealer_cards)
 
             # print player cards
-            print("\nPlayer: " + str(hand_value(player_cards)[0]) + "\n")
-            print_cards(player_cards)
+            # for p in np.arange(num_players):
+            #     player_cards = players[p]
+            #     print("\nPlayer " + str(p+1) + ": " + str(hand_value(player_cards)[0]) + "\n")
+            #     print_cards(player_cards)
+            time.sleep(1.5)
 
-    # recalculate dealer and player hand
-    player_hand_value = hand_value(player_cards)[0]
-    dealer_hand_value = hand_value(dealer_cards)[0]
+    # loop through players again to determine winnings
+    for p in np.arange(num_players):
+        player_cards = players[p]
 
-    # win conditions
-    if player_hand_value == 21 and len(player_cards) == 2:  # player blackjack
-        print("\nBlackJack!")
-        print("You Won!")
-        win_check = 1.5
-    elif dealer_hand_value == 21 and len(dealer_cards) == 2:  # dealer blackjack
-        print("\nDealer BlackJack!")
-        if str.lower(player_action) == 'i':
-            print("Insurance Push.")
-            win_check = 0
-        elif str.lower(player_action) == 'n':
-            print("You Lost.")
+        # display player hand
+        if hand_value(player_cards)[1] == 0:
+            print("Player " + str(p + 1) + ": " + str(hand_value(player_cards)[0]), end="")
+            print("\\" + str(hand_value(player_cards)[0] - 10) + "\n")
+        else:
+            print("\nPlayer " + str(p + 1) + ": " + str(hand_value(player_cards)[0]) + "\n")
+
+        # print player cards
+        print_cards(player_cards)
+
+        # recalculate dealer and player hand
+        player_hand_value = hand_value(player_cards)[0]
+        dealer_hand_value = hand_value(dealer_cards)[0]
+
+        # win conditions
+        if player_hand_value == 21 and len(player_cards) == 2:  # player blackjack
+            print("BlackJack! You Won!")
+            win_check = 1.5
+        elif dealer_hand_value == 21 and len(dealer_cards) == 2:  # dealer blackjack
+            print("Dealer BlackJack!", end="")
+            if str.lower(player_action) == 'i':
+                print("Insurance Push.")
+                win_check = 0
+            elif str.lower(player_action) == 'n':
+                print("You Lost.")
+                win_check = -1
+        elif player_hand_value > 21:  # player bust
+            print("Busted! You Lost.")
             win_check = -1
-    elif player_hand_value > 21:  # player bust
-        print("\nBusted!")
-        print("You Lost.")
-        win_check = -1
-    elif dealer_hand_value > 21:  # dealer bust
-        print("\nYou Won!")
-        win_check = 1
-    elif dealer_hand_value > player_hand_value:  # dealer win with higher number
-        print("\nYou Lost.")
-        win_check = -1
-    elif dealer_hand_value == player_hand_value:  # push
-        print("\nCards Pushed.")
-        win_check = 0
-    else:  # player wins everything else
-        print("\nYou Won!")
-        win_check = 1
+        elif dealer_hand_value > 21:  # dealer bust
+            print("\nYou Won!")
+            win_check = 1
+        elif dealer_hand_value > player_hand_value:  # dealer win with higher number
+            print("\nYou Lost.")
+            win_check = -1
+        elif dealer_hand_value == player_hand_value:  # push
+            print("\nCards Pushed.")
+            win_check = 0
+        else:  # player wins everything else
+            print("\nYou Won!")
+            win_check = 1
 
-    # adjust and print bankroll
-    bankroll = bankroll+table_min_bet*win_check
-    print("Bankroll: " + str(bankroll))
+        # adjust bankroll
+        bankroll = bankroll+table_min_bet*win_check
 
     # ask to keep playing
+    print("Bankroll: " + str(bankroll))
     print("Press any key to go again, or Q to exit.")
     player_action = input()
 
     if str.lower(player_action) == "q":
         play_hand = False
     else:
-        print("\n")
-
+        print("\n\n")
