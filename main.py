@@ -89,9 +89,7 @@ def main():
     player_hand.append(deal_card(deck))
     dealer_hand.append(deal_card(deck))
 
-  showHand(player_hand)
-  showDealerHand(dealer_hand,0)
-
+ 
 
   while userInput != "6":
 
@@ -110,7 +108,11 @@ def main():
         dealer_hand.append(deal_card(deck))
       games+=1
       roundOver = False
+    
+    showHand(player_hand)
+    showDealerHand(dealer_hand,0)
 
+    #case 6 kinda works need to fix 
     print("Please select one of the following options...")
     print("1. Repeat dealer's hand")
     print("2. Repeat your hand")
@@ -138,9 +140,10 @@ def main():
           showHand(player_hand)
           showDealerHand(dealer_hand,1)
           roundOver = True
-
-        else:
-          showHand(player_hand)
+        
+        #nocessary nice player hand gets repeated after ever cycle of the while loop
+        #else:
+          #showHand(player_hand)
 
       case "4":
         #show dealer's hand, hit until 17 or higher, compare scores
@@ -156,14 +159,19 @@ def main():
 
         if player_score == 21:
           wins+=1
+          print("WIN")
         elif dealer_score > 21:
           wins+=1
+          print("WIN")
         elif player_score > dealer_score:
           wins+=1
+          print("WIN")
         elif player_score < dealer_score:
           games+=1
+          print("LOST")
         else:
           push+=1
+          print("PUSH")
 
         roundOver = True
 
@@ -179,10 +187,6 @@ def main():
 
 
 
-
-
-print("Thanks for playing!")
-#create function
 
 
 main()
